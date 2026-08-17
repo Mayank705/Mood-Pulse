@@ -27,6 +27,14 @@ export const env = {
   entraClientId: process.env.ENTRA_CLIENT_ID ?? "",
   entraAudience: process.env.ENTRA_AUDIENCE ?? "",
 
+  // Microsoft Graph app registration used for the SharePoint hierarchy
+  // import (src/services/sharepointSync.service.ts). Separate from the
+  // Entra ID sign-in app above — this one authenticates as the service
+  // itself (client-credentials), not as a signed-in user.
+  graphTenantId: process.env.GRAPH_TENANT_ID ?? "",
+  graphClientId: process.env.GRAPH_CLIENT_ID ?? "",
+  graphClientSecret: process.env.GRAPH_CLIENT_SECRET ?? "",
+
   seedSuperAdminEmail: process.env.SEED_SUPER_ADMIN_EMAIL ?? "admin@dailypulse.dev",
 
   isProd: (process.env.NODE_ENV ?? "development") === "production",

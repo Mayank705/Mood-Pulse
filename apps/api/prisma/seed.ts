@@ -63,11 +63,18 @@ function commentFor(mood: MoodLevel): string | null {
   return null;
 }
 
-/** Business days (Mon-Fri) for the last `count` calendar days, oldest first. */
+/**
+ * Business days (Mon-Fri) for the last `count` calendar days, oldest first,
+ * ending yesterday rather than today. Seed data deliberately never includes
+ * today's date so every employee's daily check-in is still open right after
+ * seeding — this data exists to populate history/trends, not to pre-fill
+ * the one response a real person is about to submit themselves.
+ */
 function businessDays(count: number): Date[] {
   const days: Date[] = [];
   const cursor = new Date();
   cursor.setUTCHours(0, 0, 0, 0);
+  cursor.setUTCDate(cursor.getUTCDate() - 1);
   while (days.length < count) {
     const dow = cursor.getUTCDay();
     if (dow !== 0 && dow !== 6) days.unshift(new Date(cursor));

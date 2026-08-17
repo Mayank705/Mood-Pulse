@@ -8,6 +8,7 @@ import DepartmentDetail from "./pages/DepartmentDetail";
 import Team from "./pages/Team";
 import EmployeeDirectory from "./pages/EmployeeDirectory";
 import EmployeeDetail from "./pages/EmployeeDetail";
+import Organization from "./pages/Organization";
 import Trends from "./pages/Trends";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
@@ -73,6 +74,14 @@ function Gate() {
             }
           />
           <Route path="employees/:id" element={<EmployeeDetail />} />
+          <Route
+            path="organization"
+            element={
+              <RequirePermission permission="hierarchy:manage">
+                <Organization />
+              </RequirePermission>
+            }
+          />
           <Route
             path="trends"
             element={

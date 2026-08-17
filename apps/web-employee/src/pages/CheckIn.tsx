@@ -3,6 +3,8 @@ import { useAuth } from "../auth/AuthProvider";
 import { api, ApiClientError } from "../api/client";
 import { MOOD_OPTIONS, MoodLevel, TodayStatus } from "../types";
 import EmojiOption from "../components/EmojiOption";
+import AmbientBackground from "../components/AmbientBackground";
+import { themeFor } from "../theme/moodTheme";
 
 type Phase = "loading" | "closed" | "form" | "submitting" | "confirmed" | "error";
 
@@ -22,6 +24,8 @@ export default function CheckIn() {
   const [selectedMood, setSelectedMood] = useState<MoodLevel | null>(null);
   const [comment, setComment] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const theme = themeFor(selectedMood);
 
   const loadStatus = useCallback(async () => {
     setPhase("loading");
@@ -75,7 +79,7 @@ export default function CheckIn() {
 
   if (phase === "loading") {
     return (
-      <CenteredCard>
+      <CenteredCard theme={theme}>
         <div className="flex flex-col items-center gap-3 text-slate-400">
           <div className="h-8 w-8 rounded-full border-2 border-indigo-200 border-t-indigo-500 animate-spin" />
           <p className="text-sm">Getting things ready…</p>
@@ -86,7 +90,7 @@ export default function CheckIn() {
 
   if (phase === "error") {
     return (
-      <CenteredCard>
+      <CenteredCard theme={theme}>
         <p className="text-4xl mb-3">🔄</p>
         <p className="text-slate-600 text-center mb-5">{errorMessage}</p>
         <button
@@ -101,7 +105,7 @@ export default function CheckIn() {
 
   if (phase === "closed") {
     return (
-      <CenteredCard>
+      <CenteredCard theme={theme}>
         <p className="text-4xl mb-3 animate-pop-in">👋</p>
         <p className="text-slate-600 text-center">
           {status?.alreadySubmitted ? "You're all set for today. See you tomorrow!" : "Check back during tomorrow's check-in window."}
@@ -112,9 +116,12 @@ export default function CheckIn() {
 
   if (phase === "confirmed") {
     return (
-      <CenteredCard>
-        <div className="animate-pop-in flex flex-col items-center">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Thanks for checking in! 💙</h1>
+      <CenteredCard theme={theme}>
+        <div className="relative animate-pop-in flex flex-col items-center py-2">
+          <Sparkles />
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold text-slate-800 mb-2 text-balance">
+            Thanks for checking in! 💙
+          </h1>
           <p className="text-slate-500">Your response has been recorded.</p>
         </div>
       </CenteredCard>
@@ -123,11 +130,13 @@ export default function CheckIn() {
 
   // phase === "form" | "submitting"
   return (
-    <CenteredCard wide>
+    <CenteredCard theme={theme} wide>
       <p className="text-sm font-medium text-slate-400 mb-1">
         {greeting()} {user?.name?.split(" ")[0] ?? ""} 👋
       </p>
-      <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-6 sm:mb-8">How are you feeling today?</h1>
+      <h1 className="font-display text-3xl sm:text-4xl font-semibold text-slate-800 mb-6 sm:mb-8 text-balance">
+        How are you feeling today?
+      </h1>
 
       <div className="grid grid-cols-5 gap-1 sm:gap-3 mb-6 sm:mb-8" role="radiogroup" aria-label="How are you feeling today?">
         {MOOD_OPTIONS.map((option) => (
@@ -146,9 +155,12 @@ export default function CheckIn() {
           maxLength={COMMENT_LIMIT}
           rows={3}
           placeholder="Share a little more (optional)"
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition-colors resize-none"
+          className="checkin-textarea w-full rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:bg-white transition-colors resize-none"
+          style={{ "--focus-ring": theme.glow } as React.CSSProperties}
         />
-        <p className="text-right text-[11px] text-slate-300 mt-1">{comment.length}/{COMMENT_LIMIT}</p>
+        <p className="text-right text-[11px] text-slate-300 mt-1">
+          {comment.length}/{COMMENT_LIMIT}
+        </p>
       </div>
 
       {errorMessage && <p className="text-sm text-rose-500 mb-4 text-center">{errorMessage}</p>}
@@ -156,7 +168,8 @@ export default function CheckIn() {
       <button
         onClick={handleSubmit}
         disabled={!selectedMood || phase === "submitting"}
-        className="w-full rounded-full bg-indigo-600 text-white py-3.5 text-sm font-semibold tracking-wide hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 transition-colors shadow-lg shadow-indigo-200 disabled:shadow-none"
+        style={selectedMood ? { backgroundColor: theme.accent, boxShadow: `0 12px 24px -8px ${theme.glow}` } : undefined}
+        className="w-full rounded-full text-white py-3.5 text-sm font-semibold tracking-wide transition-all duration-300 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none hover:brightness-95"
       >
         {phase === "submitting" ? "Submitting…" : "Submit"}
       </button>
@@ -164,11 +177,43 @@ export default function CheckIn() {
   );
 }
 
-function CenteredCard({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
+function Sparkles() {
+  const positions = [
+    { top: "-6px", left: "18%", delay: "0s" },
+    { top: "10px", left: "82%", delay: "0.3s" },
+    { top: "-14px", left: "50%", delay: "0.6s" },
+    { top: "20px", left: "6%", delay: "0.9s" },
+    { top: "6px", left: "92%", delay: "1.2s" },
+  ];
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-sky-50 p-4 sm:p-6">
+    <div className="pointer-events-none absolute inset-x-0 -top-2 h-10 motion-reduce:hidden" aria-hidden="true">
+      {positions.map((p, i) => (
+        <span
+          key={i}
+          className="absolute text-sm animate-sparkle"
+          style={{ top: p.top, left: p.left, animationDelay: p.delay }}
+        >
+          ✦
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function CenteredCard({
+  children,
+  wide,
+  theme,
+}: {
+  children: React.ReactNode;
+  wide?: boolean;
+  theme: ReturnType<typeof themeFor>;
+}) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative">
+      <AmbientBackground theme={theme} />
       <div
-        className={`w-full ${wide ? "max-w-md sm:max-w-lg" : "max-w-sm"} rounded-[2rem] bg-white shadow-2xl shadow-indigo-100/70 border border-white p-6 sm:p-10 flex flex-col items-center`}
+        className={`w-full ${wide ? "max-w-md sm:max-w-lg" : "max-w-sm"} rounded-[2rem] bg-white/90 backdrop-blur-sm shadow-2xl shadow-slate-200/60 border border-white p-6 sm:p-10 flex flex-col items-center transition-shadow duration-500`}
       >
         {children}
       </div>

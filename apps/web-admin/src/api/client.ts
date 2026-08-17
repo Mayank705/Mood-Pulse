@@ -12,7 +12,6 @@ async function request<T>(path: string, token: string | null, init?: RequestInit
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers ?? {}),
     },
@@ -33,6 +32,14 @@ async function request<T>(path: string, token: string | null, init?: RequestInit
   return res.json();
 }
 
+function jsonInit(method: string, body?: unknown): RequestInit {
+  return {
+    method,
+    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  };
+}
+
 export function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -44,12 +51,13 @@ export function buildQuery(params: Record<string, string | number | boolean | un
 
 export const api = {
   get: <T>(path: string, token: string | null) => request<T>(path, token),
-  post: <T>(path: string, token: string | null, body?: unknown) =>
-    request<T>(path, token, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
-  put: <T>(path: string, token: string | null, body?: unknown) =>
-    request<T>(path, token, { method: "PUT", body: body ? JSON.stringify(body) : undefined }),
-  patch: <T>(path: string, token: string | null, body?: unknown) =>
-    request<T>(path, token, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }),
+  post: <T>(path: string, token: string | null, body?: unknown) => request<T>(path, token, jsonInit("POST", body)),
+  put: <T>(path: string, token: string | null, body?: unknown) => request<T>(path, token, jsonInit("PUT", body)),
+  patch: <T>(path: string, token: string | null, body?: unknown) => request<T>(path, token, jsonInit("PATCH", body)),
+  delete: <T>(path: string, token: string | null) => request<T>(path, token, { method: "DELETE" }),
+  // No Content-Type header — the browser sets multipart/form-data with the
+  // correct boundary itself, which it can only do if we don't pre-set it.
+  upload: <T>(path: string, token: string | null, formData: FormData) => request<T>(path, token, { method: "POST", body: formData }),
 };
 
 export { API_BASE_URL };

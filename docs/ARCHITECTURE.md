@@ -144,11 +144,35 @@ say.
 ## 6. Employee data synchronization
 
 `Employee` rows are the system of record for org structure inside Daily
-Pulse, but they are meant to be **synchronized from an external HR/employee
-master system**, not maintained by hand. `POST /api/employees` and
-`PUT /api/employees/:id` (both gated on the `hierarchy:manage` permission)
-are the integration surface: point your HR system's nightly/webhook sync
-job at them the same way an HR admin's manual onboarding UI would use them.
+Pulse, and there are three supported ways to get them in, all gated on the
+`hierarchy:manage` permission and all funneling through the same
+create/update logic:
+
+1. **Manual, one at a time** — `POST /api/employees` / `PUT /api/employees/:id`,
+   surfaced in the Admin Portal's Employee Directory ("+ Add Employee",
+   "Edit"). Same for `Department`/`SubDepartment`
+   (`POST /api/departments`, `POST /api/departments/:id/sub-departments`,
+   plus `PATCH`/`DELETE` for renames and removals), surfaced on the
+   Organization page.
+2. **Bulk, via Excel** — `POST /api/departments/import` and
+   `POST /api/employees/import` accept an uploaded `.xlsx` (downloadable
+   starter templates at `GET .../import/template`). Parsing and upserting
+   live in `src/services/importExport.service.ts`: departments/sub-departments
+   are matched by name, employees by Employee ID, so re-uploading the same
+   file (with edits) safely updates rather than duplicates. Employee rows
+   reference their manager by email, resolved in a second pass so row order
+   in the spreadsheet doesn't matter.
+3. **Bulk, via SharePoint** — `POST /api/departments/import/sharepoint` and
+   `POST /api/employees/import/sharepoint` pull the same-shaped workbook
+   from a SharePoint document library over Microsoft Graph
+   (`src/services/sharepointSync.service.ts`) and run it through the exact
+   same import logic as a manual upload. Requires a separate Graph app
+   registration — see `docs/DEPLOYMENT.md`.
+
+An employee soft-delete (`DELETE /api/employees/:id`) sets
+`employmentStatus` to `TERMINATED` rather than removing the row — their
+historical `MoodResponse`s, and the trends built from them, stay intact.
+
 New employees become check-in–eligible the moment their record exists and
 their `employmentStatus` is `ACTIVE` — no per-laptop configuration step.
 

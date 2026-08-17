@@ -138,3 +138,22 @@ export interface HierarchyFilterValue {
   managerId?: string;
   employeeId?: string;
 }
+
+export interface RowError {
+  row: number;
+  message: string;
+}
+
+export interface ImportSummary {
+  totalRows: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: RowError[];
+}
+
+export interface SharePointFileRef {
+  siteHostname: string;
+  sitePath: string;
+  filePath: string;
+}

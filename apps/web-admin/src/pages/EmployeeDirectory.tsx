@@ -3,16 +3,20 @@ import { Link } from "react-router-dom";
 import { api, buildQuery } from "../api/client";
 import { useAuth } from "../auth/AuthProvider";
 import HierarchyFilter from "../components/HierarchyFilter";
-import { EmployeeSummary, HierarchyFilterValue } from "../types";
+import EmployeeFormModal from "../components/EmployeeFormModal";
+import { DepartmentNode, EmployeeSummary, HierarchyFilterValue } from "../types";
 
 export default function EmployeeDirectory() {
-  const { token } = useAuth();
+  const { token, can } = useAuth();
   const [filter, setFilter] = useState<HierarchyFilterValue>({});
   const [search, setSearch] = useState("");
   const [employees, setEmployees] = useState<EmployeeSummary[]>([]);
+  const [departments, setDepartments] = useState<DepartmentNode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalEmployee, setModalEmployee] = useState<EmployeeSummary | null | undefined>(undefined); // undefined = closed
+  const canManage = can("hierarchy:manage");
 
-  useEffect(() => {
+  function reload() {
     setLoading(true);
     const query = buildQuery({
       departmentId: filter.departmentId,
@@ -24,7 +28,21 @@ export default function EmployeeDirectory() {
       .get<{ employees: EmployeeSummary[] }>(`/api/employees${query}`, token)
       .then((res) => setEmployees(res.employees))
       .finally(() => setLoading(false));
-  }, [token, filter, search]);
+  }
+
+  useEffect(reload, [token, filter, search]);
+
+  useEffect(() => {
+    if (canManage) {
+      api.get<{ departments: DepartmentNode[] }>("/api/departments", token).then((res) => setDepartments(res.departments));
+    }
+  }, [token, canManage]);
+
+  async function handleDeactivate(employee: EmployeeSummary) {
+    if (!confirm(`Deactivate ${employee.name}? They will stop appearing as an active employee, but their mood history is kept.`)) return;
+    await api.delete(`/api/employees/${employee.id}`, token);
+    reload();
+  }
 
   return (
     <div className="space-y-6">
@@ -44,6 +62,14 @@ export default function EmployeeDirectory() {
               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
           </label>
+          {canManage && (
+            <button
+              onClick={() => setModalEmployee(null)}
+              className="rounded-full bg-brand-600 text-white px-4 py-2 text-sm font-semibold hover:bg-brand-700 transition-colors"
+            >
+              + Add Employee
+            </button>
+          )}
         </div>
       </div>
 
@@ -56,6 +82,7 @@ export default function EmployeeDirectory() {
               <th className="px-6 py-3 font-medium">Manager</th>
               <th className="px-6 py-3 font-medium">Title</th>
               <th className="px-6 py-3 font-medium">Role</th>
+              {canManage && <th className="px-6 py-3 font-medium">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -75,6 +102,18 @@ export default function EmployeeDirectory() {
                 <td className="px-6 py-3">
                   <span className="text-xs font-medium bg-slate-100 text-slate-500 rounded-full px-2.5 py-1">{e.role}</span>
                 </td>
+                {canManage && (
+                  <td className="px-6 py-3">
+                    <div className="flex gap-3">
+                      <button onClick={() => setModalEmployee(e)} className="text-xs font-semibold text-brand-600 hover:underline">
+                        Edit
+                      </button>
+                      <button onClick={() => handleDeactivate(e)} className="text-xs font-semibold text-rose-500 hover:underline">
+                        Deactivate
+                      </button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -82,6 +121,18 @@ export default function EmployeeDirectory() {
         {!loading && employees.length === 0 && <p className="text-sm text-slate-400 py-10 text-center">No employees match this filter.</p>}
         {loading && <p className="text-sm text-slate-400 py-10 text-center">Loading…</p>}
       </div>
+
+      {modalEmployee !== undefined && departments.length > 0 && (
+        <EmployeeFormModal
+          departments={departments}
+          employee={modalEmployee}
+          onClose={() => setModalEmployee(undefined)}
+          onSaved={() => {
+            setModalEmployee(undefined);
+            reload();
+          }}
+        />
+      )}
     </div>
   );
 }

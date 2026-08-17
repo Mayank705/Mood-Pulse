@@ -1,4 +1,5 @@
 import { MoodOption } from "../types";
+import { MOOD_THEME } from "../theme/moodTheme";
 
 interface Props {
   option: MoodOption;
@@ -7,14 +8,21 @@ interface Props {
 }
 
 export default function EmojiOption({ option, selected, onSelect }: Props) {
+  const theme = MOOD_THEME[option.mood];
+
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
       aria-label={option.ariaLabel}
-      className={`group relative flex flex-col items-center gap-2 rounded-3xl px-3 py-4 sm:px-4 sm:py-5 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 ${
-        selected ? "bg-indigo-50 scale-110 animate-glow-pulse" : "bg-transparent hover:bg-slate-50 hover:scale-105"
+      style={
+        selected
+          ? ({ backgroundColor: theme.ambientFrom, "--glow-color": theme.glow } as React.CSSProperties)
+          : undefined
+      }
+      className={`group relative flex flex-col items-center gap-2 rounded-3xl px-3 py-4 sm:px-4 sm:py-5 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 ${
+        selected ? "scale-110 animate-glow-pulse" : "bg-transparent hover:bg-slate-50 hover:scale-105"
       }`}
     >
       <span
@@ -25,7 +33,10 @@ export default function EmojiOption({ option, selected, onSelect }: Props) {
       >
         {option.emoji}
       </span>
-      <span className={`text-[11px] sm:text-xs font-medium transition-colors ${selected ? "text-indigo-600" : "text-slate-400"}`}>
+      <span
+        className={`text-[11px] sm:text-xs font-medium transition-colors ${selected ? "" : "text-slate-400"}`}
+        style={selected ? { color: theme.accent } : undefined}
+      >
         {option.label}
       </span>
     </button>

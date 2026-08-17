@@ -9,9 +9,18 @@ import { ApiError } from "../middleware/errorHandler";
 import { employmentStatusSchema, roleSchema } from "../types/enums";
 import { getEmployeeTrend } from "../services/analytics.service";
 import { recordAudit } from "../services/audit.service";
+import { uploadWorkbook } from "../middleware/upload";
+import { employeesTemplateBuffer, importEmployeesFromBuffer } from "../services/importExport.service";
+import { syncEmployeesFromSharePoint } from "../services/sharepointSync.service";
 
 const router = Router();
 router.use(authenticate);
+
+async function requireOrganization() {
+  const org = await prisma.organization.findFirst();
+  if (!org) throw new ApiError(400, "Organization not initialized");
+  return org;
+}
 
 const employeeSelect = {
   id: true,
@@ -168,5 +177,91 @@ router.patch("/:id/role", requirePermission(PERMISSIONS.USERS_MANAGE), validateB
     next(err);
   }
 });
+
+// DELETE /api/employees/:id — a soft delete (employmentStatus -> TERMINATED),
+// never a hard delete. Historical MoodResponse rows stay intact and keep
+// contributing to past trend/analytics data; the employee simply stops
+// being check-in-eligible and drops out of active-employee views.
+router.delete("/:id", requirePermission(PERMISSIONS.HIERARCHY_MANAGE), async (req, res, next) => {
+  try {
+    const employee = await prisma.employee.update({
+      where: { id: req.params.id },
+      data: { employmentStatus: "TERMINATED" },
+      select: employeeSelect,
+    });
+    await recordAudit({ actorId: req.user!.id, action: "HIERARCHY_CHANGE", targetType: "Employee", targetId: employee.id, metadata: { op: "deactivate" }, ipAddress: req.ip });
+    res.json({ employee });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/employees/import/template — downloadable .xlsx starter file.
+router.get("/import/template", requirePermission(PERMISSIONS.HIERARCHY_MANAGE), async (_req, res, next) => {
+  try {
+    const buffer = await employeesTemplateBuffer();
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=employees-template.xlsx");
+    res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/employees/import — bulk-create/update employees from an
+// uploaded .xlsx file. Missing departments/sub-departments referenced by
+// name are created automatically; manager relationships are resolved by
+// email in a second pass, so row order in the spreadsheet doesn't matter.
+router.post("/import", requirePermission(PERMISSIONS.HIERARCHY_MANAGE), (req, res, next) => {
+  uploadWorkbook(req, res, async (err) => {
+    if (err) return next(new ApiError(400, err.message));
+    try {
+      if (!req.file) throw new ApiError(400, "No file uploaded — attach an .xlsx file as 'file'");
+      const org = await requireOrganization();
+      const summary = await importEmployeesFromBuffer(req.file.buffer, org.id);
+      await recordAudit({
+        actorId: req.user!.id,
+        action: "HIERARCHY_CHANGE",
+        targetType: "Employee",
+        metadata: { op: "import", ...summary, errors: undefined },
+        ipAddress: req.ip,
+      });
+      res.json({ summary });
+    } catch (e) {
+      next(e);
+    }
+  });
+});
+
+const sharePointImportSchema = z.object({
+  siteHostname: z.string().min(1),
+  sitePath: z.string().min(1),
+  filePath: z.string().min(1),
+});
+
+// POST /api/employees/import/sharepoint — same import logic as /import,
+// sourced from a workbook stored in SharePoint. See docs/DEPLOYMENT.md for
+// the Entra ID app registration and Graph API permissions this requires.
+router.post(
+  "/import/sharepoint",
+  requirePermission(PERMISSIONS.HIERARCHY_MANAGE),
+  validateBody(sharePointImportSchema),
+  async (req, res, next) => {
+    try {
+      const org = await requireOrganization();
+      const summary = await syncEmployeesFromSharePoint(req.body, org.id);
+      await recordAudit({
+        actorId: req.user!.id,
+        action: "HIERARCHY_CHANGE",
+        targetType: "Employee",
+        metadata: { op: "sharepoint_sync", ...summary, errors: undefined },
+        ipAddress: req.ip,
+      });
+      res.json({ summary });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 export default router;

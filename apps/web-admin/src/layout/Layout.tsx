@@ -19,6 +19,7 @@ export default function Layout() {
     { to: "/departments", label: "Departments", icon: "🏢", show: can("analytics:view_department") },
     { to: "/team", label: "My Team", icon: "🧑‍🤝‍🧑", show: isManagerOnly },
     { to: "/employees", label: "Employees", icon: "🗂️", show: can("employee:view_directory") },
+    { to: "/organization", label: "Organization", icon: "🏗️", show: can("hierarchy:manage") },
     { to: "/trends", label: "Trends & Insights", icon: "📈", show: can("analytics:view_org") },
     { to: "/reports", label: "Reports", icon: "🧾", show: can("reports:export") },
     { to: "/settings", label: "Settings", icon: "⚙️", show: can("settings:manage") },

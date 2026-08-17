@@ -143,7 +143,35 @@ with minimal changes:
 6. Roll out via a pilot Intune group first, then expand assignment —
    standard Intune ring deployment practice, not specific to this app.
 
-## 6. Admin portal hosting
+## 6. SharePoint hierarchy sync setup (optional)
+
+To enable "Sync from SharePoint" for departments/employees (Organization
+page in the Admin Portal), register a **separate** Entra ID app from the
+sign-in one:
+
+1. **App registration — Graph sync**: register e.g. `Daily Pulse Hierarchy Sync`.
+   This one authenticates as itself (client-credentials / app-only), not as
+   a signed-in user, since HR typically schedules this rather than clicking
+   a button every time.
+2. **API permissions**: add the Microsoft Graph **application** permission
+   `Sites.Read.All`, then have a tenant admin grant admin consent.
+3. **Client secret**: create one under "Certificates & secrets" and record
+   it immediately (shown once).
+4. Set on the API: `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET`
+   (Key Vault in production, same as the other secrets on this page).
+5. In the Admin Portal's Organization page, enter the SharePoint site
+   hostname (e.g. `contoso.sharepoint.com`), site path (e.g. `/sites/HR`),
+   and the workbook's path within that site's default document library
+   (e.g. `General/Employees.xlsx`), then click **Sync Now**. The workbook
+   must use the same column headers as the downloadable Excel template —
+   SharePoint sync and file upload share one import path
+   (`src/services/importExport.service.ts`), so anything that works as an
+   upload works as a SharePoint sync.
+
+Until these three env vars are set, sync attempts return a clear
+"not configured" error rather than failing silently.
+
+## 7. Admin portal hosting
 
 Build (`npm run build --workspace=apps/web-admin`) produces a static
 `dist/` bundle — deploy it to **Azure Static Web Apps** (built-in CI/CD
@@ -151,7 +179,7 @@ from a GitHub repo, free TLS, easy custom domain) or any static host behind
 your corporate SSO/conditional access policy. Set the three
 `VITE_ENTRA_*` variables and `VITE_API_BASE_URL` at build time.
 
-## 7. Environment variable reference
+## 8. Environment variable reference
 
 ### API (`apps/api/.env`)
 
@@ -163,7 +191,8 @@ your corporate SSO/conditional access policy. Set the three
 | `APP_TIMEZONE` | Default org timezone (e.g. `Asia/Kolkata`) — overridable per-org via Settings |
 | `AUTH_MODE` | `dev` (local only) or `entra` (required in production) |
 | `JWT_SECRET` | Signing secret — a strong, unique value per environment, stored in Key Vault |
-| `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_AUDIENCE` | Entra ID app registration values |
+| `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_AUDIENCE` | Entra ID sign-in app registration values |
+| `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET` | Optional — Graph app registration for SharePoint hierarchy sync (§6) |
 | `SEED_SUPER_ADMIN_EMAIL` | Dev-only seed convenience, unused in production |
 
 ### Frontends (`apps/web-*/.env`)
@@ -178,7 +207,7 @@ Never commit populated `.env` files — only the checked-in `.env.example`
 templates. All secrets belong in Azure Key Vault / Intune app configuration
 in production.
 
-## 8. CI/CD outline
+## 9. CI/CD outline
 
 1. `npm ci && npm test` (API test suite) on every PR.
 2. `npm run build` (all three apps) as a build gate.

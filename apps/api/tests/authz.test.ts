@@ -40,6 +40,25 @@ describe("employee access restrictions", () => {
       .send({ name: "New Department" });
     expect(res.status).toBe(403);
   });
+
+  it("cannot bulk-import departments or employees", async () => {
+    const deptRes = await request(app)
+      .post("/api/departments/import")
+      .set("Authorization", `Bearer ${fixtures.employeeA.token}`);
+    expect(deptRes.status).toBe(403);
+
+    const empRes = await request(app)
+      .post("/api/employees/import")
+      .set("Authorization", `Bearer ${fixtures.employeeA.token}`);
+    expect(empRes.status).toBe(403);
+  });
+
+  it("cannot deactivate an employee", async () => {
+    const res = await request(app)
+      .delete(`/api/employees/${fixtures.employeeB.id}`)
+      .set("Authorization", `Bearer ${fixtures.employeeA.token}`);
+    expect(res.status).toBe(403);
+  });
 });
 
 describe("manager access restrictions", () => {
@@ -78,6 +97,20 @@ describe("manager access restrictions", () => {
       .send({ mandatory: false });
     expect(res.status).toBe(403);
   });
+
+  it("cannot rename or delete a department", async () => {
+    const deptsRes = await request(app).get("/api/departments").set("Authorization", `Bearer ${fixtures.hrAdmin.token}`);
+    const someDeptId = deptsRes.body.departments[0].id;
+
+    const renameRes = await request(app)
+      .patch(`/api/departments/${someDeptId}`)
+      .set("Authorization", `Bearer ${fixtures.manager.token}`)
+      .send({ name: "Renamed" });
+    expect(renameRes.status).toBe(403);
+
+    const deleteRes = await request(app).delete(`/api/departments/${someDeptId}`).set("Authorization", `Bearer ${fixtures.manager.token}`);
+    expect(deleteRes.status).toBe(403);
+  });
 });
 
 describe("HR admin access", () => {
@@ -106,6 +139,24 @@ describe("HR admin access", () => {
       .set("Authorization", `Bearer ${fixtures.hrAdmin.token}`)
       .send({ role: "MANAGER" });
     expect(res.status).toBe(403);
+  });
+
+  it("can rename a department and deactivate an employee", async () => {
+    const deptsRes = await request(app).get("/api/departments").set("Authorization", `Bearer ${fixtures.hrAdmin.token}`);
+    const someDeptId = deptsRes.body.departments[0].id;
+
+    const renameRes = await request(app)
+      .patch(`/api/departments/${someDeptId}`)
+      .set("Authorization", `Bearer ${fixtures.hrAdmin.token}`)
+      .send({ name: "Renamed Department" });
+    expect(renameRes.status).toBe(200);
+    expect(renameRes.body.department.name).toBe("Renamed Department");
+
+    const deactivateRes = await request(app)
+      .delete(`/api/employees/${fixtures.outsiderEmployee.id}`)
+      .set("Authorization", `Bearer ${fixtures.hrAdmin.token}`);
+    expect(deactivateRes.status).toBe(200);
+    expect(deactivateRes.body.employee.employmentStatus).toBe("TERMINATED");
   });
 });
 
