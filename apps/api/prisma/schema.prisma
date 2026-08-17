@@ -1,0 +1,156 @@
+// Daily Pulse — Prisma schema
+//
+// Local development uses SQLite (zero-infra, fast iteration).
+// Production targets Azure SQL / SQL Server: change `provider` below to
+// "sqlserver" and point DATABASE_URL at the Azure SQL connection string.
+// See docs/DEPLOYMENT.md for the exact production datasource block and the
+// small set of type adjustments Prisma requires for that connector
+// (e.g. @db.NVarChar sizing, no native boolean — Prisma maps these for you).
+//
+// Enums are intentionally modeled as validated strings (not Prisma `enum`)
+// so the same schema works unmodified across SQLite, SQL Server, and
+// Postgres, all of which have different enum support. Allowed values are
+// enforced in code via zod (see src/types/enums.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  timezone  String   @default("Asia/Kolkata")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  departments Department[]
+  settings    Setting?
+
+  @@map("organizations")
+}
+
+model Department {
+  id             String   @id @default(cuid())
+  name           String
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subDepartments SubDepartment[]
+  employees      Employee[]
+
+  @@unique([organizationId, name])
+  @@map("departments")
+}
+
+model SubDepartment {
+  id           String   @id @default(cuid())
+  name         String
+  departmentId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  employees  Employee[]
+
+  @@unique([departmentId, name])
+  @@map("sub_departments")
+}
+
+// Employee doubles as the application "user" — role-based access is driven
+// off Employee.role. Manager is modeled via the self-referencing
+// managerId/manager/reports relation rather than a separate table, per the
+// spec's "Manager can be represented through the Employee table" guidance.
+model Employee {
+  id               String    @id @default(cuid())
+  employeeCode     String    @unique // business-facing employee_id
+  name             String
+  email            String    @unique
+  entraObjectId    String?   @unique // Azure AD / Entra ID object id (oid claim)
+  departmentId     String
+  subDepartmentId  String
+  managerId        String?
+  jobTitle         String
+  employmentStatus String    @default("ACTIVE") // ACTIVE | ON_LEAVE | TERMINATED
+  role             String    @default("EMPLOYEE") // EMPLOYEE | MANAGER | HR_ADMIN | SUPER_ADMIN
+  dateJoined       DateTime
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  department    Department      @relation(fields: [departmentId], references: [id])
+  subDepartment SubDepartment   @relation(fields: [subDepartmentId], references: [id])
+  manager       Employee?       @relation("ManagerReports", fields: [managerId], references: [id])
+  reports       Employee[]      @relation("ManagerReports")
+  moodResponses MoodResponse[]
+  auditLogs     AuditLog[]      @relation("AuditActor")
+
+  @@index([departmentId])
+  @@index([subDepartmentId])
+  @@index([managerId])
+  @@map("employees")
+}
+
+// Mood is intentionally split: `mood` is the human-readable label used
+// internally, `moodValue` (1-5) is the internal analytics score. Neither is
+// ever exposed on the employee-facing check-in UI.
+model MoodResponse {
+  id           String   @id @default(cuid())
+  employeeId   String
+  mood         String // VERY_HAPPY | GOOD | OKAY | NOT_GREAT | VERY_LOW
+  moodValue    Int // 5..1, internal only
+  comment      String?
+  responseDate DateTime // calendar date (midnight, org timezone) — the once-per-day key
+  responseTime DateTime // exact submission timestamp
+  createdAt    DateTime @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  // Database-level guarantee: at most one response per employee per day,
+  // even under duplicate/concurrent submission.
+  @@unique([employeeId, responseDate])
+  @@index([responseDate])
+  @@map("mood_responses")
+}
+
+model Setting {
+  id                    String   @id @default(cuid())
+  organizationId        String   @unique
+  checkinStartTime      String   @default("07:00") // HH:mm, org-local
+  checkinEndTime        String   @default("11:00")
+  mandatory             Boolean  @default(true)
+  allowLateCheckins     Boolean  @default(true)
+  promptDelaySeconds    Int      @default(0)
+  lowMoodThresholdCount Int      @default(3) // "N low responses in window" trigger
+  lowMoodWindowDays     Int      @default(7)
+  decliningWindowDays   Int      @default(21)
+  retentionDays         Int      @default(730)
+  timezone              String   @default("Asia/Kolkata")
+  updatedAt             DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String // LOGIN | MOOD_SUBMIT | VIEW_EMPLOYEE_DATA | EXPORT | PERMISSION_CHANGE | HIERARCHY_CHANGE | SETTINGS_CHANGE
+  targetType String?
+  targetId   String?
+  metadata   String? // JSON-encoded details
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  actor Employee? @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@map("audit_logs")
+}

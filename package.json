@@ -1,0 +1,24 @@
+{
+  "name": "daily-pulse",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Daily Pulse - Employee Mood Check-in Platform",
+  "workspaces": [
+    "apps/api",
+    "apps/web-admin",
+    "apps/web-employee"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:admin": "npm run dev --workspace=apps/web-admin",
+    "dev:employee": "npm run dev --workspace=apps/web-employee",
+    "dev": "concurrently -n api,admin,employee -c blue,green,magenta \"npm:dev:api\" \"npm:dev:admin\" \"npm:dev:employee\"",
+    "build": "npm run build --workspace=apps/api && npm run build --workspace=apps/web-admin && npm run build --workspace=apps/web-employee",
+    "test": "npm run test --workspace=apps/api",
+    "db:migrate": "npm run db:migrate --workspace=apps/api",
+    "db:seed": "npm run db:seed --workspace=apps/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
