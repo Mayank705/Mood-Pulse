@@ -186,20 +186,29 @@ async function main() {
     for (const subName of subNames) {
       const subDepartment = await prisma.subDepartment.create({ data: { name: subName, departmentId: department.id } });
 
+      // Two manager tiers, mirroring a real SuperCoach / Co-SuperCoach
+      // reporting line: the first manager created in each sub-department is
+      // the "lead" (Co-SuperCoach) that the other managers (SuperCoaches)
+      // report into, so employee detail pages have real Co-SuperCoach data
+      // to show rather than every manager topping out at nobody.
       const managerCount = randInt(2, 5);
+      const subDeptManagerIds: string[] = [];
       for (let m = 0; m < managerCount; m++) {
         const identity = nextIdentity();
+        const isLead = m === 0;
         const manager = await prisma.employee.create({
           data: {
             ...identity,
             departmentId: department.id,
             subDepartmentId: subDepartment.id,
-            jobTitle: "Manager",
+            managerId: isLead ? undefined : subDeptManagerIds[0],
+            jobTitle: isLead ? `Head of ${subName}` : "Manager",
             role: "MANAGER",
             employmentStatus: "ACTIVE",
             dateJoined: new Date(Date.now() - randInt(365, 365 * 6) * 86400000),
           },
         });
+        subDeptManagerIds.push(manager.id);
         allEmployeeIds.push(manager.id);
         await generateMoodHistory(manager.id, PATTERNS[patternCursor++ % PATTERNS.length]);
 

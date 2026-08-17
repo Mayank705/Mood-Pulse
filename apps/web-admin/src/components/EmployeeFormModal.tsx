@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiClientError } from "../api/client";
 import { useAuth } from "../auth/AuthProvider";
-import { DepartmentNode, EmployeeSummary, Role } from "../types";
+import { DepartmentNode, EmployeeSummary, Role, ROLE_LABEL } from "../types";
 
 interface Props {
   departments: DepartmentNode[];
@@ -114,7 +114,7 @@ export default function EmployeeFormModal({ departments, employee, onClose, onSa
           <Field label="Email" span2>
             <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
           </Field>
-          <Field label="Department">
+          <Field label="BU">
             <select
               value={departmentId}
               onChange={(e) => {
@@ -130,7 +130,7 @@ export default function EmployeeFormModal({ departments, employee, onClose, onSa
               ))}
             </select>
           </Field>
-          <Field label="Sub-department">
+          <Field label="Competency">
             <select value={subDepartmentId} onChange={(e) => setSubDepartmentId(e.target.value)} className="input">
               {selectedDept?.subDepartments.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -143,7 +143,7 @@ export default function EmployeeFormModal({ departments, employee, onClose, onSa
             <select value={role} onChange={(e) => setRole(e.target.value as Role)} className="input">
               {ROLES.map((r) => (
                 <option key={r} value={r}>
-                  {r}
+                  {ROLE_LABEL[r]}
                 </option>
               ))}
             </select>
@@ -151,7 +151,7 @@ export default function EmployeeFormModal({ departments, employee, onClose, onSa
           <Field label="Date joined">
             <input type="date" value={dateJoined} onChange={(e) => setDateJoined(e.target.value)} className="input" />
           </Field>
-          <Field label="Manager" span2>
+          <Field label="SuperCoach" span2>
             <input
               value={managerSearch}
               onChange={(e) => {

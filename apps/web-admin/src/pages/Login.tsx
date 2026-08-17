@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../api/client";
 import { authMode, useAuth } from "../auth/AuthProvider";
+import { ROLE_LABEL, Role } from "../types";
 
 interface DirectoryEntry {
   email: string;
@@ -8,12 +9,6 @@ interface DirectoryEntry {
   role: string;
   jobTitle: string;
 }
-
-const ROLE_LABEL: Record<string, string> = {
-  MANAGER: "Manager",
-  HR_ADMIN: "HR / Admin",
-  SUPER_ADMIN: "Super Admin",
-};
 
 export default function Login() {
   const { signInDev, signInEntra, error, status } = useAuth();
@@ -33,7 +28,7 @@ export default function Login() {
           <div className="h-8 w-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-sm">DP</div>
           <span className="font-semibold text-slate-800">Daily Pulse</span>
         </div>
-        <h1 className="text-lg font-bold text-slate-800 mt-4 mb-1">Admin & Manager Portal</h1>
+        <h1 className="text-lg font-bold text-slate-800 mt-4 mb-1">Admin & SuperCoach Portal</h1>
         <p className="text-sm text-slate-500 mb-6">Sign in to view organizational mood insights.</p>
 
         {status === "forbidden" && (
@@ -65,7 +60,7 @@ export default function Login() {
                     <span className="block text-xs text-slate-400">{entry.jobTitle}</span>
                   </span>
                   <span className="text-[10px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-500 rounded-full px-2 py-1 group-hover:bg-brand-100 group-hover:text-brand-600">
-                    {ROLE_LABEL[entry.role] ?? entry.role}
+                    {ROLE_LABEL[entry.role as Role] ?? entry.role}
                   </span>
                 </button>
               ))}

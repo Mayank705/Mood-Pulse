@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { ROLE_LABEL } from "../types";
 
 interface NavItem {
   to: string;
@@ -16,7 +17,7 @@ export default function Layout() {
 
   const navItems: NavItem[] = [
     { to: "/overview", label: "Overview", icon: "📊", show: can("analytics:view_org") },
-    { to: "/departments", label: "Departments", icon: "🏢", show: can("analytics:view_department") },
+    { to: "/departments", label: "BUs", icon: "🏢", show: can("analytics:view_department") },
     { to: "/team", label: "My Team", icon: "🧑‍🤝‍🧑", show: isManagerOnly },
     { to: "/employees", label: "Employees", icon: "🗂️", show: can("employee:view_directory") },
     { to: "/organization", label: "Organization", icon: "🏗️", show: can("hierarchy:manage") },
@@ -56,7 +57,7 @@ export default function Layout() {
         <div className="px-4 py-4 border-t border-white/10">
           <p className="text-xs text-slate-500 mb-1">Signed in as</p>
           <p className="text-sm font-medium text-white truncate">{user.name}</p>
-          <p className="text-xs text-slate-500 mb-3">{roleLabel(user.role)}</p>
+          <p className="text-xs text-slate-500 mb-3">{ROLE_LABEL[user.role]}</p>
           <button onClick={signOut} className="text-xs font-semibold text-slate-400 hover:text-white transition-colors">
             Sign out
           </button>
@@ -69,8 +70,4 @@ export default function Layout() {
       </main>
     </div>
   );
-}
-
-function roleLabel(role: string) {
-  return { MANAGER: "Manager", HR_ADMIN: "HR / Admin", SUPER_ADMIN: "Super Admin" }[role] ?? role;
 }

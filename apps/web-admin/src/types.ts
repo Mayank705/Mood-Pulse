@@ -1,5 +1,15 @@
 export type Role = "EMPLOYEE" | "MANAGER" | "HR_ADMIN" | "SUPER_ADMIN";
 
+// "MANAGER" stays the stored/API role value everywhere (RBAC, imports,
+// role-change endpoint) — this is purely the org's own vocabulary for it,
+// shown wherever a role reaches the screen.
+export const ROLE_LABEL: Record<Role, string> = {
+  EMPLOYEE: "Employee",
+  MANAGER: "SuperCoach",
+  HR_ADMIN: "HR / Admin",
+  SUPER_ADMIN: "Super Admin",
+};
+
 export type MoodLevel = "VERY_HAPPY" | "GOOD" | "OKAY" | "NOT_GREAT" | "VERY_LOW";
 
 export const MOOD_EMOJI: Record<MoodLevel, string> = {
@@ -40,7 +50,9 @@ export interface EmployeeSummary {
   dateJoined: string;
   department: { id: string; name: string };
   subDepartment: { id: string; name: string };
-  manager: { id: string; name: string; employeeCode: string } | null;
+  // "manager" = SuperCoach (direct manager), "manager.manager" = Co-SuperCoach
+  // (skip-level manager) — always derived from the same reporting chain.
+  manager: { id: string; name: string; employeeCode: string; manager: { id: string; name: string; employeeCode: string } | null } | null;
 }
 
 export interface SubDepartmentNode {

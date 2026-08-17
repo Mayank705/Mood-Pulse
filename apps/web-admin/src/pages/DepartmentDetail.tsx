@@ -47,7 +47,7 @@ export default function DepartmentDetail() {
     <div className="space-y-6">
       <div>
         <Link to="/departments" className="text-xs text-brand-600 hover:underline">
-          ← All Departments
+          ← All BUs
         </Link>
         <h1 className="text-2xl font-bold text-slate-800 mt-1">{department.name}</h1>
         <p className="text-sm text-slate-500">
@@ -61,7 +61,7 @@ export default function DepartmentDetail() {
       </div>
 
       <div className="rounded-2xl bg-white border border-slate-100 shadow-sm shadow-slate-100 p-6">
-        <h2 className="text-sm font-semibold text-slate-700 mb-4">Sub-departments</h2>
+        <h2 className="text-sm font-semibold text-slate-700 mb-4">Competencies</h2>
         <div className="flex flex-wrap gap-2 mb-4">
           {department.subDepartments.map((sub) => (
             <button
@@ -103,7 +103,7 @@ export default function DepartmentDetail() {
                 </button>
               ))}
             {department.subDepartments.find((s) => s.id === activeSub)?.employees.length === 0 && (
-              <p className="text-xs text-slate-400">No managers found in this sub-department.</p>
+              <p className="text-xs text-slate-400">No SuperCoaches found in this Competency.</p>
             )}
           </div>
         )}

@@ -33,7 +33,11 @@ const employeeSelect = {
   dateJoined: true,
   department: { select: { id: true, name: true } },
   subDepartment: { select: { id: true, name: true } },
-  manager: { select: { id: true, name: true, employeeCode: true } },
+  // "manager.manager" is the skip-level manager — surfaced in the UI as
+  // "Co-SuperCoach" alongside "manager" as "SuperCoach". There is no
+  // separate stored field for this: it's always derived from the same
+  // managerId chain, so it can never drift out of sync with the org chart.
+  manager: { select: { id: true, name: true, employeeCode: true, manager: { select: { id: true, name: true, employeeCode: true } } } },
 } as const;
 
 const directoryQuery = z.object({

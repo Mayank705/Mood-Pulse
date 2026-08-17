@@ -59,11 +59,11 @@ describe("department/sub-department import", () => {
     expect(await prisma.department.count()).toBe(before);
   });
 
-  it("reports a row-level error instead of throwing when Department is missing", async () => {
+  it("reports a row-level error instead of throwing when the BU name is missing", async () => {
     const buffer = await buildWorkbook(["Department", "Sub-department"], [["", "Orphan Sub-department"]]);
     const summary = await importDepartmentsFromBuffer(buffer, organizationId);
     expect(summary.errors).toHaveLength(1);
-    expect(summary.errors[0].message).toMatch(/Department/i);
+    expect(summary.errors[0].message).toMatch(/BU/);
   });
 });
 

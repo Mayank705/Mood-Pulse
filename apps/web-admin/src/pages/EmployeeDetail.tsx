@@ -63,10 +63,11 @@ export default function EmployeeDetail() {
           <h1 className="text-2xl font-bold text-slate-800">{employee.name}</h1>
           <p className="text-sm text-slate-500">{employee.jobTitle}</p>
         </div>
-        <div className="grid grid-cols-3 gap-6 text-sm">
-          <Field label="Department" value={employee.department.name} />
-          <Field label="Sub-department" value={employee.subDepartment.name} />
-          <Field label="Manager" value={employee.manager?.name ?? "—"} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 text-sm">
+          <Field label="BU" value={employee.department.name} />
+          <Field label="Competency" value={employee.subDepartment.name} />
+          <Field label="SuperCoach" value={employee.manager?.name ?? "—"} />
+          <Field label="Co-SuperCoach" value={employee.manager?.manager?.name ?? "—"} />
         </div>
       </div>
 

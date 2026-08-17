@@ -15,13 +15,13 @@ export default function Organization() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Organization</h1>
-        <p className="text-sm text-slate-500">Manage departments, sub-departments, and how employee records get into Daily Pulse.</p>
+        <p className="text-sm text-slate-500">Manage BUs, Competencies, and how employee records get into Daily Pulse.</p>
       </div>
 
       <div className="flex gap-1 border-b border-slate-200">
         {(
           [
-            { key: "structure", label: "Departments & Sub-departments" },
+            { key: "structure", label: "BUs & Competencies" },
             { key: "employees", label: "Employees" },
           ] as const
         ).map((t) => (
@@ -68,28 +68,28 @@ function StructureTab() {
       setNewDeptName("");
       reload();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Couldn't add department");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't add BU");
     }
   }
 
   async function renameDepartment(id: string, currentName: string) {
-    const name = prompt("Rename department", currentName);
+    const name = prompt("Rename BU", currentName);
     if (!name || name === currentName) return;
     try {
       await api.patch(`/api/departments/${id}`, token, { name });
       reload();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Couldn't rename department");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't rename BU");
     }
   }
 
   async function deleteDepartment(id: string) {
-    if (!confirm("Delete this department? Only possible if it has no sub-departments or employees left.")) return;
+    if (!confirm("Delete this BU? Only possible if it has no Competencies or employees left.")) return;
     try {
       await api.delete(`/api/departments/${id}`, token);
       reload();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Couldn't delete department");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't delete BU");
     }
   }
 
@@ -102,28 +102,28 @@ function StructureTab() {
       setNewSubName({ ...newSubName, [departmentId]: "" });
       reload();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Couldn't add sub-department");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't add Competency");
     }
   }
 
   async function renameSubDepartment(departmentId: string, subId: string, currentName: string) {
-    const name = prompt("Rename sub-department", currentName);
+    const name = prompt("Rename Competency", currentName);
     if (!name || name === currentName) return;
     try {
       await api.patch(`/api/departments/${departmentId}/sub-departments/${subId}`, token, { name });
       reload();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Couldn't rename sub-department");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't rename Competency");
     }
   }
 
   async function deleteSubDepartment(departmentId: string, subId: string) {
-    if (!confirm("Delete this sub-department? Only possible if it has no employees left.")) return;
+    if (!confirm("Delete this Competency? Only possible if it has no employees left.")) return;
     try {
       await api.delete(`/api/departments/${departmentId}/sub-departments/${subId}`, token);
       reload();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Couldn't delete sub-department");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't delete Competency");
     }
   }
 
@@ -137,11 +137,11 @@ function StructureTab() {
               value={newDeptName}
               onChange={(e) => setNewDeptName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addDepartment()}
-              placeholder="New department name"
+              placeholder="New BU name"
               className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
             <button onClick={addDepartment} className="rounded-full bg-brand-600 text-white px-4 py-1.5 text-xs font-semibold hover:bg-brand-700">
-              + Add Department
+              + Add BU
             </button>
           </div>
         </div>
@@ -185,7 +185,7 @@ function StructureTab() {
                       value={newSubName[dept.id] ?? ""}
                       onChange={(e) => setNewSubName({ ...newSubName, [dept.id]: e.target.value })}
                       onKeyDown={(e) => e.key === "Enter" && addSubDepartment(dept.id)}
-                      placeholder="New sub-department name"
+                      placeholder="New Competency name"
                       className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs flex-1 focus:outline-none focus:ring-2 focus:ring-brand-200"
                     />
                     <button
@@ -198,21 +198,21 @@ function StructureTab() {
                 </div>
               </div>
             ))}
-            {departments.length === 0 && <p className="text-sm text-slate-400">No departments yet — add one above.</p>}
+            {departments.length === 0 && <p className="text-sm text-slate-400">No BUs yet — add one above.</p>}
           </div>
         )}
       </div>
 
       <ImportPanel
         title="Bulk import from Excel"
-        description="Upload a spreadsheet listing Department / Sub-department pairs. Existing names are left untouched — safe to re-run."
+        description="Upload a spreadsheet listing BU / Competency pairs. Existing names are left untouched — safe to re-run."
         templatePath="/api/departments/import/template"
-        templateFilename="departments-template.xlsx"
+        templateFilename="bus-template.xlsx"
         importPath="/api/departments/import"
         onImported={reload}
       />
 
-      <SharePointSyncPanel syncPath="/api/departments/import/sharepoint" filePathHint="General/Departments.xlsx" onSynced={reload} />
+      <SharePointSyncPanel syncPath="/api/departments/import/sharepoint" filePathHint="General/BUs.xlsx" onSynced={reload} />
     </div>
   );
 }
@@ -230,7 +230,7 @@ function EmployeesTab() {
 
       <ImportPanel
         title="Bulk import from Excel"
-        description="Upload a spreadsheet of employees. Existing employees (matched by Employee ID) are updated, not duplicated; new departments/sub-departments referenced by name are created automatically."
+        description="Upload a spreadsheet of employees. Existing employees (matched by Employee ID) are updated, not duplicated; new BUs/Competencies referenced by name are created automatically."
         templatePath="/api/employees/import/template"
         templateFilename="employees-template.xlsx"
         importPath="/api/employees/import"

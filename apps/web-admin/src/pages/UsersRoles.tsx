@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, buildQuery } from "../api/client";
 import { useAuth } from "../auth/AuthProvider";
-import { EmployeeSummary, Role } from "../types";
+import { EmployeeSummary, Role, ROLE_LABEL } from "../types";
 
 const ROLES: Role[] = ["EMPLOYEE", "MANAGER", "HR_ADMIN", "SUPER_ADMIN"];
 
@@ -35,7 +35,7 @@ export default function UsersRoles() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Users & Roles</h1>
-          <p className="text-sm text-slate-500">Grant Manager, HR/Admin, or Super Admin access. Employee is the default for everyone else.</p>
+          <p className="text-sm text-slate-500">Grant SuperCoach, HR/Admin, or Super Admin access. Employee is the default for everyone else.</p>
         </div>
         <input
           value={search}
@@ -50,7 +50,7 @@ export default function UsersRoles() {
           <thead>
             <tr className="text-left text-xs text-slate-400 uppercase tracking-wide bg-slate-50">
               <th className="px-6 py-3 font-medium">Employee</th>
-              <th className="px-6 py-3 font-medium">Department</th>
+              <th className="px-6 py-3 font-medium">BU</th>
               <th className="px-6 py-3 font-medium">Role</th>
             </tr>
           </thead>
@@ -72,7 +72,7 @@ export default function UsersRoles() {
                     >
                       {ROLES.map((r) => (
                         <option key={r} value={r}>
-                          {r}
+                          {ROLE_LABEL[r]}
                         </option>
                       ))}
                     </select>

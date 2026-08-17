@@ -31,8 +31,8 @@ export default function Departments() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Departments</h1>
-        <p className="text-sm text-slate-500">Response rate and mood distribution by department.</p>
+        <h1 className="text-2xl font-bold text-slate-800">BUs</h1>
+        <p className="text-sm text-slate-500">Response rate and mood distribution by BU.</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -49,7 +49,7 @@ export default function Departments() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h2 className="font-semibold text-slate-800">{dept.name}</h2>
-                  <p className="text-xs text-slate-400">{dept.subDepartments.length} sub-departments</p>
+                  <p className="text-xs text-slate-400">{dept.subDepartments.length} Competencies</p>
                 </div>
                 <span className="text-xs font-semibold text-brand-600 bg-brand-50 rounded-full px-2.5 py-1">
                   {s ? `${s.responseRate}% response rate` : "—"}

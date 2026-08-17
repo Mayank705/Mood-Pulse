@@ -78,10 +78,10 @@ function field(record: Record<string, string>, ...names: string[]): string {
 
 export async function departmentsTemplateBuffer(): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet("Departments");
+  const sheet = workbook.addWorksheet("BUs");
   sheet.columns = [
-    { header: "Department", key: "department", width: 26 },
-    { header: "Sub-department", key: "subDepartment", width: 28 },
+    { header: "BU", key: "department", width: 26 },
+    { header: "Competency", key: "subDepartment", width: 28 },
   ];
   sheet.getRow(1).font = { bold: true };
   sheet.addRow({ department: "Audit", subDepartment: "Financial Services" });
@@ -101,11 +101,11 @@ export async function importDepartmentRows(rows: Record<string, string>[], organ
 
   for (let i = 0; i < rows.length; i++) {
     const rowNumber = i + 2; // header is row 1
-    const departmentName = field(rows[i], "Department", "Department Name");
-    const subDepartmentName = field(rows[i], "Sub-department", "Sub Department", "SubDepartment");
+    const departmentName = field(rows[i], "BU", "Business Unit", "Department", "Department Name");
+    const subDepartmentName = field(rows[i], "Competency", "Sub-department", "Sub Department", "SubDepartment");
 
     if (!departmentName) {
-      summary.errors.push({ row: rowNumber, message: "Missing Department name" });
+      summary.errors.push({ row: rowNumber, message: "Missing BU name" });
       continue;
     }
 
@@ -149,9 +149,9 @@ export async function employeesTemplateBuffer(): Promise<Buffer> {
     { header: "Employee ID", key: "employeeCode", width: 14 },
     { header: "Name", key: "name", width: 22 },
     { header: "Email", key: "email", width: 28 },
-    { header: "Department", key: "department", width: 20 },
-    { header: "Sub-department", key: "subDepartment", width: 22 },
-    { header: "Manager Email", key: "managerEmail", width: 28 },
+    { header: "BU", key: "department", width: 20 },
+    { header: "Competency", key: "subDepartment", width: 22 },
+    { header: "SuperCoach Email", key: "managerEmail", width: 28 },
     { header: "Job Title", key: "jobTitle", width: 22 },
     { header: "Role", key: "role", width: 14 },
     { header: "Employment Status", key: "employmentStatus", width: 16 },
@@ -164,7 +164,7 @@ export async function employeesTemplateBuffer(): Promise<Buffer> {
     email: "jane.smith@company.com",
     department: "Audit",
     subDepartment: "Financial Services",
-    managerEmail: "manager@company.com",
+    managerEmail: "supercoach@company.com",
     jobTitle: "Senior Associate",
     role: "EMPLOYEE",
     employmentStatus: "ACTIVE",
@@ -193,9 +193,9 @@ function toEmployeeRow(record: Record<string, string>, rowNumber: number): Emplo
     employeeCode: field(record, "Employee ID", "Employee Code", "EmployeeCode"),
     name: field(record, "Name", "Employee Name"),
     email: field(record, "Email"),
-    department: field(record, "Department"),
-    subDepartment: field(record, "Sub-department", "Sub Department", "SubDepartment"),
-    managerEmail: field(record, "Manager Email", "ManagerEmail"),
+    department: field(record, "BU", "Business Unit", "Department"),
+    subDepartment: field(record, "Competency", "Sub-department", "Sub Department", "SubDepartment"),
+    managerEmail: field(record, "SuperCoach Email", "Manager Email", "ManagerEmail"),
     jobTitle: field(record, "Job Title", "JobTitle", "Title"),
     role: field(record, "Role").toUpperCase(),
     employmentStatus: field(record, "Employment Status", "EmploymentStatus").toUpperCase(),
@@ -238,7 +238,7 @@ export async function importEmployeeRows(raw: Record<string, string>[], organiza
     if (!row.employeeCode || !row.name || !row.email || !row.department || !row.subDepartment || !row.jobTitle) {
       summary.errors.push({
         row: row.rowNumber,
-        message: "Missing a required field (Employee ID, Name, Email, Department, Sub-department, or Job Title)",
+        message: "Missing a required field (Employee ID, Name, Email, BU, Competency, or Job Title)",
       });
       continue;
     }
@@ -293,11 +293,11 @@ export async function importEmployeeRows(raw: Record<string, string>[], organiza
 
     const manager = await prisma.employee.findUnique({ where: { email: row.managerEmail.toLowerCase() } });
     if (!manager) {
-      summary.errors.push({ row: row.rowNumber, message: `Manager email ${row.managerEmail} does not match any employee` });
+      summary.errors.push({ row: row.rowNumber, message: `SuperCoach email ${row.managerEmail} does not match any employee` });
       continue;
     }
     if (manager.id === employeeId) {
-      summary.errors.push({ row: row.rowNumber, message: "An employee cannot be their own manager" });
+      summary.errors.push({ row: row.rowNumber, message: "An employee cannot be their own SuperCoach" });
       continue;
     }
     await prisma.employee.update({ where: { id: employeeId }, data: { managerId: manager.id } });

@@ -8,7 +8,7 @@ interface Props {
   onChange: (value: HierarchyFilterValue) => void;
 }
 
-/** Department -> Sub-department -> Manager cascading filter, used across the Overview, Departments, and Employee Directory screens. */
+/** BU -> Competency -> SuperCoach cascading filter, used across the Overview, BUs, and Employee Directory screens. */
 export default function HierarchyFilter({ value, onChange }: Props) {
   const { token } = useAuth();
   const [departments, setDepartments] = useState<DepartmentNode[]>([]);
@@ -26,27 +26,27 @@ export default function HierarchyFilter({ value, onChange }: Props) {
   return (
     <div className="flex flex-wrap gap-3">
       <Select
-        label="Department"
+        label="BU"
         value={value.departmentId ?? ""}
         onChange={(v) => onChange({ departmentId: v || undefined })}
-        options={[{ value: "", label: "All Departments" }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
+        options={[{ value: "", label: "All BUs" }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
       />
       <Select
-        label="Sub-department"
+        label="Competency"
         value={value.subDepartmentId ?? ""}
         disabled={!selectedDept}
         onChange={(v) => onChange({ ...value, subDepartmentId: v || undefined, managerId: undefined })}
         options={[
-          { value: "", label: "All Sub-departments" },
+          { value: "", label: "All Competencies" },
           ...(selectedDept?.subDepartments.map((s) => ({ value: s.id, label: s.name })) ?? []),
         ]}
       />
       <Select
-        label="Manager"
+        label="SuperCoach"
         value={value.managerId ?? ""}
         disabled={!selectedSub}
         onChange={(v) => onChange({ ...value, managerId: v || undefined })}
-        options={[{ value: "", label: "All Managers" }, ...(selectedSub?.employees.map((m) => ({ value: m.id, label: m.name })) ?? [])]}
+        options={[{ value: "", label: "All SuperCoaches" }, ...(selectedSub?.employees.map((m) => ({ value: m.id, label: m.name })) ?? [])]}
       />
     </div>
   );

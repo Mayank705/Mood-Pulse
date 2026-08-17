@@ -56,6 +56,21 @@ Organization 1───* Department 1───* SubDepartment
   a manager *is* an employee, so "Manager" is not a separate table (per the
   spec's guidance). A manager's own reports are found via
   `Employee.reports` (the inverse of `managerId`).
+- **Display terminology is a UI-only layer over this schema, not a second
+  data model.** This org calls `Department` a "BU", `SubDepartment` a
+  "Competency", and the `MANAGER` role a "SuperCoach" — a manager's own
+  manager (one hop further up `managerId`) is shown as "Co-SuperCoach",
+  derived at read time (`manager.manager` in the API response), never
+  stored. All of that is relabeling in `apps/web-admin/src` (see
+  `ROLE_LABEL` in `types.ts` and the copy in `HierarchyFilter.tsx`,
+  `Organization.tsx`, etc.) — the database tables, API routes, and request/
+  response field names underneath are still `department` / `subDepartment`
+  / `manager`. Deliberately kept this way rather than renaming the schema:
+  it's the same risk/benefit tradeoff as any vocabulary change requested
+  after the data model is live — renaming the underlying columns buys
+  nothing functionally and risks a migration mistake, while a display-layer
+  rename is a same-day, zero-risk change if the org's terminology shifts
+  again.
 - `MoodResponse` has a **database-level unique constraint on
   `(employeeId, responseDate)`** — Prisma migration
   `apps/api/prisma/migrations/*_init` — so duplicate same-day submissions

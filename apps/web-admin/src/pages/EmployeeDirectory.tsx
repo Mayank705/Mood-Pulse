@@ -4,7 +4,7 @@ import { api, buildQuery } from "../api/client";
 import { useAuth } from "../auth/AuthProvider";
 import HierarchyFilter from "../components/HierarchyFilter";
 import EmployeeFormModal from "../components/EmployeeFormModal";
-import { DepartmentNode, EmployeeSummary, HierarchyFilterValue } from "../types";
+import { DepartmentNode, EmployeeSummary, HierarchyFilterValue, ROLE_LABEL } from "../types";
 
 export default function EmployeeDirectory() {
   const { token, can } = useAuth();
@@ -78,8 +78,8 @@ export default function EmployeeDirectory() {
           <thead>
             <tr className="text-left text-xs text-slate-400 uppercase tracking-wide bg-slate-50">
               <th className="px-6 py-3 font-medium">Employee</th>
-              <th className="px-6 py-3 font-medium">Department</th>
-              <th className="px-6 py-3 font-medium">Manager</th>
+              <th className="px-6 py-3 font-medium">BU</th>
+              <th className="px-6 py-3 font-medium">SuperCoach</th>
               <th className="px-6 py-3 font-medium">Title</th>
               <th className="px-6 py-3 font-medium">Role</th>
               {canManage && <th className="px-6 py-3 font-medium">Actions</th>}
@@ -100,7 +100,7 @@ export default function EmployeeDirectory() {
                 <td className="px-6 py-3 text-slate-500">{e.manager?.name ?? "—"}</td>
                 <td className="px-6 py-3 text-slate-500">{e.jobTitle}</td>
                 <td className="px-6 py-3">
-                  <span className="text-xs font-medium bg-slate-100 text-slate-500 rounded-full px-2.5 py-1">{e.role}</span>
+                  <span className="text-xs font-medium bg-slate-100 text-slate-500 rounded-full px-2.5 py-1">{ROLE_LABEL[e.role]}</span>
                 </td>
                 {canManage && (
                   <td className="px-6 py-3">
