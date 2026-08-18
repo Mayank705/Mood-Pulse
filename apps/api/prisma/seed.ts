@@ -138,6 +138,63 @@ async function generateMoodHistory(employeeId: string, pattern: Pattern) {
   }
 }
 
+/**
+ * --minimal: wipes everything and leaves just an empty org structure plus
+ * one Super Admin account (no fake departments, no fake employees, no mood
+ * history) — the starting point for bringing in a real organization's data
+ * by hand or via Excel/SharePoint import, instead of the demo dataset.
+ */
+async function seedMinimal() {
+  console.log("Resetting to a minimal (real-data-ready) state...");
+
+  await prisma.auditLog.deleteMany();
+  await prisma.moodResponse.deleteMany();
+  await prisma.employee.deleteMany();
+  await prisma.subDepartment.deleteMany();
+  await prisma.department.deleteMany();
+  await prisma.setting.deleteMany();
+  await prisma.organization.deleteMany();
+
+  const org = await prisma.organization.create({
+    data: {
+      name: "Your Organization",
+      timezone: "Asia/Kolkata",
+      settings: { create: { timezone: "Asia/Kolkata" } },
+    },
+  });
+
+  // A placeholder BU/Competency to hang the bootstrap Super Admin account
+  // on — Employee requires a BU and Competency. Rename these (or move the
+  // admin account and delete them) once real BUs exist.
+  const department = await prisma.department.create({ data: { name: "Administration", organizationId: org.id } });
+  const subDepartment = await prisma.subDepartment.create({ data: { name: "Platform", departmentId: department.id } });
+
+  const adminEmail = process.env.SEED_SUPER_ADMIN_EMAIL;
+  if (!adminEmail) {
+    throw new Error(
+      "SEED_SUPER_ADMIN_EMAIL is not set in apps/api/.env — set it to the real email you'll sign in with, then re-run this."
+    );
+  }
+
+  await prisma.employee.create({
+    data: {
+      name: "System Administrator",
+      email: adminEmail,
+      employeeCode: "EMP-0000",
+      departmentId: department.id,
+      subDepartmentId: subDepartment.id,
+      jobTitle: "Platform Super Admin",
+      role: "SUPER_ADMIN",
+      employmentStatus: "ACTIVE",
+      dateJoined: new Date(),
+    },
+  });
+
+  console.log(`Ready. Organization "${org.name}" has one Super Admin account and no employees yet.`);
+  console.log(`Sign in with: ${adminEmail}`);
+  console.log(`Now add your real BUs, Competencies, and employees from the Organization page (manually or via Excel/SharePoint import).`);
+}
+
 async function main() {
   console.log("Seeding Daily Pulse demo data...");
 
@@ -271,7 +328,9 @@ async function main() {
   console.log(`HR Admin login:    ${hrAdminIdentity.email}`);
 }
 
-main()
+const entrypoint = process.argv.includes("--minimal") ? seedMinimal : main;
+
+entrypoint()
   .catch((err) => {
     console.error(err);
     process.exit(1);

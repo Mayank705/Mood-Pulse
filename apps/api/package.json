@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:minimal": "tsx prisma/seed.ts --minimal",
     "db:reset": "prisma migrate reset --force"
   },
   "prisma": {
