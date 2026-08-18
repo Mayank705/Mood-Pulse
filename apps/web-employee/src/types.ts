@@ -9,14 +9,14 @@ export interface MoodOption {
   ariaLabel: string;
 }
 
-// Order matches the spec exactly: Very Happy -> Very Low, left to right.
-// Numbers are intentionally never part of this UI.
+// Left to right: Very Low -> Very Happy, so the most positive option sits
+// on the right. Numbers are intentionally never part of this UI.
 export const MOOD_OPTIONS: MoodOption[] = [
-  { mood: "VERY_HAPPY", emoji: "😄", label: "Very Happy", ariaLabel: "Very Happy" },
-  { mood: "GOOD", emoji: "🙂", label: "Good", ariaLabel: "Good" },
-  { mood: "OKAY", emoji: "😐", label: "Okay", ariaLabel: "Okay" },
-  { mood: "NOT_GREAT", emoji: "😟", label: "Not Great", ariaLabel: "Not Great" },
   { mood: "VERY_LOW", emoji: "😢", label: "Very Low", ariaLabel: "Very Low" },
+  { mood: "NOT_GREAT", emoji: "😟", label: "Not Great", ariaLabel: "Not Great" },
+  { mood: "OKAY", emoji: "😐", label: "Okay", ariaLabel: "Okay" },
+  { mood: "GOOD", emoji: "🙂", label: "Good", ariaLabel: "Good" },
+  { mood: "VERY_HAPPY", emoji: "😄", label: "Very Happy", ariaLabel: "Very Happy" },
 ];
 
 export interface TodayStatus {
