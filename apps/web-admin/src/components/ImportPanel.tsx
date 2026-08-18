@@ -9,28 +9,53 @@ interface Props {
   templatePath: string;
   templateFilename: string;
   importPath: string;
+  /** Optional: lets the user pull current live data into the same .xlsx shape, to edit and re-upload as an update. */
+  exportPath?: string;
+  exportFilename?: string;
+  exportLabel?: string;
   onImported?: () => void;
 }
 
-export default function ImportPanel({ title, description, templatePath, templateFilename, importPath, onImported }: Props) {
+export default function ImportPanel({
+  title,
+  description,
+  templatePath,
+  templateFilename,
+  importPath,
+  exportPath,
+  exportFilename,
+  exportLabel,
+  onImported,
+}: Props) {
   const { token } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function downloadTemplate() {
-    const res = await fetch(`${API_BASE_URL}${templatePath}`, { headers: { Authorization: `Bearer ${token}` } });
+  async function downloadFile(path: string, filename: string) {
+    const res = await fetch(`${API_BASE_URL}${path}`, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) return;
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = templateFilename;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  async function handleExport() {
+    if (!exportPath) return;
+    setExporting(true);
+    try {
+      await downloadFile(exportPath, exportFilename ?? "export.xlsx");
+    } finally {
+      setExporting(false);
+    }
   }
 
   async function handleFile(file: File) {
@@ -57,9 +82,17 @@ export default function ImportPanel({ title, description, templatePath, template
       <p className="text-xs text-slate-400 mt-1 mb-4">{description}</p>
 
       <div className="flex flex-wrap items-center gap-3">
-        <button onClick={downloadTemplate} className="text-xs font-semibold text-brand-600 hover:underline">
-          Download template (.xlsx)
+        <button onClick={() => downloadFile(templatePath, templateFilename)} className="text-xs font-semibold text-brand-600 hover:underline">
+          Download blank template (.xlsx)
         </button>
+        {exportPath && (
+          <>
+            <span className="text-slate-200">|</span>
+            <button onClick={handleExport} disabled={exporting} className="text-xs font-semibold text-brand-600 hover:underline">
+              {exporting ? "Preparing…" : (exportLabel ?? "Export current data (.xlsx)")}
+            </button>
+          </>
+        )}
         <span className="text-slate-200">|</span>
         <label className="text-xs font-semibold text-brand-600 hover:underline cursor-pointer">
           {busy ? "Uploading…" : "Upload filled-in file"}
@@ -73,6 +106,12 @@ export default function ImportPanel({ title, description, templatePath, template
           />
         </label>
       </div>
+      {exportPath && (
+        <p className="text-[11px] text-slate-400 mt-2">
+          To update existing records: export current data, edit it in Excel, then upload the edited file — rows are matched back by
+          their ID, so this updates them rather than creating duplicates.
+        </p>
+      )}
 
       {error && <p className="text-sm text-rose-500 mt-3">{error}</p>}
 

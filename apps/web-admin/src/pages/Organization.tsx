@@ -204,11 +204,14 @@ function StructureTab() {
       </div>
 
       <ImportPanel
-        title="Bulk import from Excel"
+        title="Bulk import / update from Excel"
         description="Upload a spreadsheet listing BU / Competency pairs. Existing names are left untouched — safe to re-run."
         templatePath="/api/departments/import/template"
         templateFilename="bus-template.xlsx"
         importPath="/api/departments/import"
+        exportPath="/api/departments/export"
+        exportFilename="bus-current.xlsx"
+        exportLabel="Export current BUs (.xlsx)"
         onImported={reload}
       />
 
@@ -229,11 +232,14 @@ function EmployeesTab() {
       </div>
 
       <ImportPanel
-        title="Bulk import from Excel"
+        title="Bulk import / update from Excel"
         description="Upload a spreadsheet of employees. Existing employees (matched by Employee ID) are updated, not duplicated; new BUs/Competencies referenced by name are created automatically."
         templatePath="/api/employees/import/template"
         templateFilename="employees-template.xlsx"
         importPath="/api/employees/import"
+        exportPath="/api/employees/export"
+        exportFilename="employees-current.xlsx"
+        exportLabel="Export current employees (.xlsx)"
       />
 
       <SharePointSyncPanel syncPath="/api/employees/import/sharepoint" filePathHint="General/Employees.xlsx" />

@@ -9,7 +9,7 @@ import { ApiError } from "../middleware/errorHandler";
 import { getOverview } from "../services/analytics.service";
 import { recordAudit } from "../services/audit.service";
 import { uploadWorkbook } from "../middleware/upload";
-import { departmentsTemplateBuffer, importDepartmentsFromBuffer } from "../services/importExport.service";
+import { departmentsExportBuffer, departmentsTemplateBuffer, importDepartmentsFromBuffer } from "../services/importExport.service";
 import { syncDepartmentsFromSharePoint } from "../services/sharepointSync.service";
 
 const router = Router();
@@ -154,6 +154,21 @@ router.get("/import/template", requirePermission(PERMISSIONS.HIERARCHY_MANAGE), 
     const buffer = await departmentsTemplateBuffer();
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", "attachment; filename=departments-template.xlsx");
+    res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/departments/export — every current BU/Competency pair, in the
+// same column shape as the template. Download, edit, re-upload through
+// /import to apply changes to the live structure.
+router.get("/export", requirePermission(PERMISSIONS.HIERARCHY_MANAGE), async (req, res, next) => {
+  try {
+    const org = await requireOrganization();
+    const buffer = await departmentsExportBuffer(org.id);
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=bus-current.xlsx");
     res.send(buffer);
   } catch (err) {
     next(err);

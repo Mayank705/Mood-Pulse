@@ -76,17 +76,50 @@ function field(record: Record<string, string>, ...names: string[]): string {
 // Departments & Sub-departments
 // ---------------------------------------------------------------------------
 
+const DEPARTMENT_COLUMNS = [
+  { header: "BU", key: "department", width: 26 },
+  { header: "Competency", key: "subDepartment", width: 28 },
+];
+
 export async function departmentsTemplateBuffer(): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("BUs");
-  sheet.columns = [
-    { header: "BU", key: "department", width: 26 },
-    { header: "Competency", key: "subDepartment", width: 28 },
-  ];
+  sheet.columns = DEPARTMENT_COLUMNS;
   sheet.getRow(1).font = { bold: true };
   sheet.addRow({ department: "Audit", subDepartment: "Financial Services" });
   sheet.addRow({ department: "Audit", subDepartment: "Public Sector" });
   sheet.addRow({ department: "Advisory", subDepartment: "Risk Advisory" });
+  return Buffer.from(await workbook.xlsx.writeBuffer());
+}
+
+/**
+ * Every current BU/Competency pair, in the same shape as the template —
+ * download, edit in Excel (rename a Competency, add new pairs), re-upload
+ * through the same /import endpoint to apply the changes. A BU with no
+ * Competencies yet still gets one row with the Competency column blank.
+ */
+export async function departmentsExportBuffer(organizationId: string): Promise<Buffer> {
+  const departments = await prisma.department.findMany({
+    where: { organizationId },
+    include: { subDepartments: { orderBy: { name: "asc" } } },
+    orderBy: { name: "asc" },
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("BUs");
+  sheet.columns = DEPARTMENT_COLUMNS;
+  sheet.getRow(1).font = { bold: true };
+
+  for (const dept of departments) {
+    if (dept.subDepartments.length === 0) {
+      sheet.addRow({ department: dept.name, subDepartment: "" });
+      continue;
+    }
+    for (const sub of dept.subDepartments) {
+      sheet.addRow({ department: dept.name, subDepartment: sub.name });
+    }
+  }
+
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }
 
@@ -142,21 +175,23 @@ export async function importDepartmentRows(rows: Record<string, string>[], organ
 // Employees
 // ---------------------------------------------------------------------------
 
+const EMPLOYEE_COLUMNS = [
+  { header: "Employee ID", key: "employeeCode", width: 14 },
+  { header: "Name", key: "name", width: 22 },
+  { header: "Email", key: "email", width: 28 },
+  { header: "BU", key: "department", width: 20 },
+  { header: "Competency", key: "subDepartment", width: 22 },
+  { header: "SuperCoach Email", key: "managerEmail", width: 28 },
+  { header: "Job Title", key: "jobTitle", width: 22 },
+  { header: "Role", key: "role", width: 14 },
+  { header: "Employment Status", key: "employmentStatus", width: 16 },
+  { header: "Date Joined", key: "dateJoined", width: 14 },
+];
+
 export async function employeesTemplateBuffer(): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Employees");
-  sheet.columns = [
-    { header: "Employee ID", key: "employeeCode", width: 14 },
-    { header: "Name", key: "name", width: 22 },
-    { header: "Email", key: "email", width: 28 },
-    { header: "BU", key: "department", width: 20 },
-    { header: "Competency", key: "subDepartment", width: 22 },
-    { header: "SuperCoach Email", key: "managerEmail", width: 28 },
-    { header: "Job Title", key: "jobTitle", width: 22 },
-    { header: "Role", key: "role", width: 14 },
-    { header: "Employment Status", key: "employmentStatus", width: 16 },
-    { header: "Date Joined", key: "dateJoined", width: 14 },
-  ];
+  sheet.columns = EMPLOYEE_COLUMNS;
   sheet.getRow(1).font = { bold: true };
   sheet.addRow({
     employeeCode: "EMP-1001",
@@ -170,6 +205,48 @@ export async function employeesTemplateBuffer(): Promise<Buffer> {
     employmentStatus: "ACTIVE",
     dateJoined: "2024-01-15",
   });
+  return Buffer.from(await workbook.xlsx.writeBuffer());
+}
+
+/**
+ * Every current employee, in the same shape as the template — the
+ * intended "update via Excel" flow: download this, edit whatever needs to
+ * change (BU, Competency, SuperCoach Email, title, role, even Employment
+ * Status to deactivate someone), then re-upload through /import. Rows are
+ * matched back to the same employee by Employee ID, so this updates
+ * in place rather than creating duplicates.
+ */
+export async function employeesExportBuffer(): Promise<Buffer> {
+  const employees = await prisma.employee.findMany({
+    where: { employmentStatus: "ACTIVE" },
+    include: {
+      department: { select: { name: true } },
+      subDepartment: { select: { name: true } },
+      manager: { select: { email: true } },
+    },
+    orderBy: { employeeCode: "asc" },
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Employees");
+  sheet.columns = EMPLOYEE_COLUMNS;
+  sheet.getRow(1).font = { bold: true };
+
+  for (const e of employees) {
+    sheet.addRow({
+      employeeCode: e.employeeCode,
+      name: e.name,
+      email: e.email,
+      department: e.department.name,
+      subDepartment: e.subDepartment.name,
+      managerEmail: e.manager?.email ?? "",
+      jobTitle: e.jobTitle,
+      role: e.role,
+      employmentStatus: e.employmentStatus,
+      dateJoined: e.dateJoined.toISOString().slice(0, 10),
+    });
+  }
+
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }
 

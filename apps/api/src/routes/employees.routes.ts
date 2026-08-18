@@ -10,7 +10,7 @@ import { employmentStatusSchema, roleSchema } from "../types/enums";
 import { getEmployeeTrend } from "../services/analytics.service";
 import { recordAudit } from "../services/audit.service";
 import { uploadWorkbook } from "../middleware/upload";
-import { employeesTemplateBuffer, importEmployeesFromBuffer } from "../services/importExport.service";
+import { employeesExportBuffer, employeesTemplateBuffer, importEmployeesFromBuffer } from "../services/importExport.service";
 import { syncEmployeesFromSharePoint } from "../services/sharepointSync.service";
 
 const router = Router();
@@ -78,6 +78,24 @@ router.get("/", async (req, res, next) => {
       take: 500,
     });
     res.json({ employees });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/employees/export — every current employee, in the same column
+// shape as the import template. Download, edit (BU, Competency,
+// SuperCoach Email, title, role, even Employment Status), re-upload
+// through /import to apply the changes — rows are matched back by
+// Employee ID so this updates in place. Registered before "/:id" below:
+// as a literal single-segment route it would otherwise be shadowed by
+// that dynamic one.
+router.get("/export", requirePermission(PERMISSIONS.HIERARCHY_MANAGE), async (_req, res, next) => {
+  try {
+    const buffer = await employeesExportBuffer();
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=employees-current.xlsx");
+    res.send(buffer);
   } catch (err) {
     next(err);
   }

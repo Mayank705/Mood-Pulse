@@ -1,7 +1,13 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import ExcelJS from "exceljs";
 import { prisma } from "../src/db/prisma";
-import { importDepartmentsFromBuffer, importEmployeesFromBuffer } from "../src/services/importExport.service";
+import {
+  departmentsExportBuffer,
+  employeesExportBuffer,
+  importDepartmentsFromBuffer,
+  importEmployeesFromBuffer,
+  readRowsForImport,
+} from "../src/services/importExport.service";
 
 let organizationId: string;
 
@@ -128,5 +134,43 @@ describe("employee import", () => {
     const summary = await importEmployeesFromBuffer(buffer, organizationId);
     expect(summary.errors).toHaveLength(1);
     expect(summary.errors[0].message).toMatch(/already used/i);
+  });
+});
+
+describe("export -> edit -> re-import round-trip", () => {
+  it("exports current BUs/Competencies in the same shape the importer reads, and re-importing them unchanged is a no-op", async () => {
+    const buffer = await departmentsExportBuffer(organizationId);
+    const rows = await readRowsForImport(buffer);
+    expect(rows.length).toBeGreaterThan(0);
+
+    const before = await prisma.department.count();
+    const summary = await importDepartmentsFromBuffer(buffer, organizationId);
+    expect(summary.created).toBe(0);
+    expect(summary.errors).toHaveLength(0);
+    expect(await prisma.department.count()).toBe(before);
+  });
+
+  it("exports current employees, and re-importing an edited row updates that employee", async () => {
+    const buffer = await employeesExportBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+    const sheet = workbook.worksheets[0];
+
+    // Find the row for EMP-2000 (created in the "employee import" suite above) and edit its Job Title in place.
+    let targetRow: number | null = null;
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+      if (row.getCell(1).value === "EMP-2000") targetRow = rowNumber;
+    });
+    expect(targetRow).not.toBeNull();
+    sheet.getRow(targetRow!).getCell(7).value = "Director of Platform Engineering"; // Job Title column
+    const editedBuffer = Buffer.from(await workbook.xlsx.writeBuffer());
+
+    const summary = await importEmployeesFromBuffer(editedBuffer, organizationId);
+    expect(summary.errors).toHaveLength(0);
+    expect(summary.updated).toBeGreaterThan(0);
+
+    const updated = await prisma.employee.findUnique({ where: { employeeCode: "EMP-2000" } });
+    expect(updated?.jobTitle).toBe("Director of Platform Engineering");
   });
 });
