@@ -30,7 +30,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex bg-slate-50">
-      <aside className="w-64 shrink-0 bg-slate-950 text-slate-300 flex flex-col">
+      <aside className="w-64 shrink-0 bg-gt text-slate-200 flex flex-col">
         <div className="px-5 py-5 flex items-center gap-2 border-b border-white/10">
           <div className="h-8 w-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm">DP</div>
           <span className="font-semibold text-white">Daily Pulse</span>

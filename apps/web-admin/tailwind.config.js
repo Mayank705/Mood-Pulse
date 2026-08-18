@@ -16,6 +16,11 @@ export default {
           600: "#4f46e5",
           700: "#4338ca",
         },
+        // Grant Thornton purple — used for the sidebar.
+        gt: {
+          DEFAULT: "#4f2d7f",
+          dark: "#3b2160",
+        },
       },
     },
   },
