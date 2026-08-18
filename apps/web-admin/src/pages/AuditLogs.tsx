@@ -55,7 +55,6 @@ export default function AuditLogs() {
               <th className="px-6 py-3 font-medium">Actor</th>
               <th className="px-6 py-3 font-medium">Action</th>
               <th className="px-6 py-3 font-medium">Target</th>
-              <th className="px-6 py-3 font-medium">IP</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -67,7 +66,6 @@ export default function AuditLogs() {
                   <span className="text-xs font-medium bg-slate-100 text-slate-500 rounded-full px-2.5 py-1">{log.action}</span>
                 </td>
                 <td className="px-6 py-3 text-slate-500">{log.targetType ?? "—"}</td>
-                <td className="px-6 py-3 text-slate-400">{log.ipAddress ?? "—"}</td>
               </tr>
             ))}
           </tbody>
