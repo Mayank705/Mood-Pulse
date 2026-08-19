@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import DialogProvider from "./components/DialogProvider";
 import Login from "./pages/Login";
 import Layout from "./layout/Layout";
 import Overview from "./pages/Overview";
@@ -131,8 +132,10 @@ function Gate() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Gate />
-    </AuthProvider>
+    <DialogProvider>
+      <AuthProvider>
+        <Gate />
+      </AuthProvider>
+    </DialogProvider>
   );
 }

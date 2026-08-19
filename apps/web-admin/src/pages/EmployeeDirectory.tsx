@@ -4,10 +4,12 @@ import { api, buildQuery } from "../api/client";
 import { useAuth } from "../auth/AuthProvider";
 import HierarchyFilter from "../components/HierarchyFilter";
 import EmployeeFormModal from "../components/EmployeeFormModal";
+import { useDialog } from "../components/DialogProvider";
 import { DepartmentNode, EmployeeSummary, HierarchyFilterValue, ROLE_LABEL } from "../types";
 
 export default function EmployeeDirectory() {
   const { token, can } = useAuth();
+  const { confirm } = useDialog();
   const [filter, setFilter] = useState<HierarchyFilterValue>({});
   const [search, setSearch] = useState("");
   const [employees, setEmployees] = useState<EmployeeSummary[]>([]);
@@ -39,7 +41,13 @@ export default function EmployeeDirectory() {
   }, [token, canManage]);
 
   async function handleDeactivate(employee: EmployeeSummary) {
-    if (!confirm(`Deactivate ${employee.name}? They will stop appearing as an active employee, but their mood history is kept.`)) return;
+    const ok = await confirm({
+      title: `Deactivate ${employee.name}?`,
+      message: "They will stop appearing as an active employee, but their mood history is kept.",
+      confirmLabel: "Deactivate",
+      danger: true,
+    });
+    if (!ok) return;
     await api.delete(`/api/employees/${employee.id}`, token);
     reload();
   }

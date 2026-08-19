@@ -5,6 +5,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { DepartmentNode } from "../types";
 import ImportPanel from "../components/ImportPanel";
 import SharePointSyncPanel from "../components/SharePointSyncPanel";
+import { useDialog } from "../components/DialogProvider";
 
 type Tab = "structure" | "employees";
 
@@ -44,6 +45,7 @@ export default function Organization() {
 
 function StructureTab() {
   const { token } = useAuth();
+  const { confirm, prompt } = useDialog();
   const [departments, setDepartments] = useState<DepartmentNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [newDeptName, setNewDeptName] = useState("");
@@ -73,7 +75,7 @@ function StructureTab() {
   }
 
   async function renameDepartment(id: string, currentName: string) {
-    const name = prompt("Rename BU", currentName);
+    const name = await prompt({ title: "Rename BU", initialValue: currentName });
     if (!name || name === currentName) return;
     try {
       await api.patch(`/api/departments/${id}`, token, { name });
@@ -84,7 +86,13 @@ function StructureTab() {
   }
 
   async function deleteDepartment(id: string) {
-    if (!confirm("Delete this BU? Only possible if it has no Competencies or employees left.")) return;
+    const ok = await confirm({
+      title: "Delete this BU?",
+      message: "Only possible if it has no Competencies or employees left.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await api.delete(`/api/departments/${id}`, token);
       reload();
@@ -107,7 +115,7 @@ function StructureTab() {
   }
 
   async function renameSubDepartment(departmentId: string, subId: string, currentName: string) {
-    const name = prompt("Rename Competency", currentName);
+    const name = await prompt({ title: "Rename Competency", initialValue: currentName });
     if (!name || name === currentName) return;
     try {
       await api.patch(`/api/departments/${departmentId}/sub-departments/${subId}`, token, { name });
@@ -118,7 +126,13 @@ function StructureTab() {
   }
 
   async function deleteSubDepartment(departmentId: string, subId: string) {
-    if (!confirm("Delete this Competency? Only possible if it has no employees left.")) return;
+    const ok = await confirm({
+      title: "Delete this Competency?",
+      message: "Only possible if it has no employees left.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await api.delete(`/api/departments/${departmentId}/sub-departments/${subId}`, token);
       reload();
