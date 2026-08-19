@@ -87,17 +87,20 @@ query builder, not raw SQL.
    - API: `AUTH_MODE=entra`, `ENTRA_TENANT_ID`, `ENTRA_AUDIENCE`
    - Employee/Admin frontends: `VITE_AUTH_MODE=entra`,
      `VITE_ENTRA_CLIENT_ID`, `VITE_ENTRA_TENANT_ID`, `VITE_ENTRA_API_SCOPE`
-4. **Complete the JWKS verification stub**: `src/auth/entraProvider.ts`
-   documents the exact validation flow (fetch JWKS, match `kid`, verify
-   RS256, check issuer/audience/expiry) but leaves JWK→PEM conversion as an
-   explicit stub — add the `jwk-to-pem` package and implement
-   `jwkToPem()` before flipping `AUTH_MODE` to `entra` in any real
-   environment. This is intentionally not implemented against a fake/mock
-   tenant, since a real Entra ID app registration is needed to test it
-   meaningfully.
-5. Sync employee hierarchy from your HR/employee master system into the
-   `Employee` table (see `docs/ARCHITECTURE.md` §6), including
-   `entraObjectId` so tokens can be resolved to a directory record.
+4. **JWKS verification** (`src/auth/entraProvider.ts`) fetches the
+   tenant's signing keys, converts the matched JWK to PEM (via
+   `jwk-to-pem`), and verifies RS256 signature, issuer, audience and
+   expiry — implemented, no further wiring needed.
+5. **Account linking is automatic** (`src/auth/middleware.ts`): the first
+   time someone signs in with Entra ID, the API looks up the employee
+   record by the token's email claim (already provisioned via the
+   Organization page or Excel/SharePoint import) and stores their
+   `entraObjectId` on it, so every later sign-in resolves directly by
+   object id. There's nothing to pre-populate — as long as the employee's
+   email in Daily Pulse matches their Entra ID email/UPN, SSO works the
+   first time they sign in. If a directory record is already linked to a
+   different Entra account, sign-in is rejected rather than silently
+   re-linked.
 
 ## 4. Windows Employee Agent
 

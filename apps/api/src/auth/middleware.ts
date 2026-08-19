@@ -47,11 +47,32 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
       employeeId = claims.sub;
     } else {
       // Production path: validate against Entra ID, then resolve the
-      // employee by entraObjectId (see auth/entraProvider.ts).
+      // employee (see auth/entraProvider.ts).
       const { verifyEntraToken } = await import("./entraProvider");
       const entraClaims = await verifyEntraToken(token);
-      const employee = await prisma.employee.findUnique({ where: { entraObjectId: entraClaims.oid } });
-      if (!employee) return res.status(401).json({ error: "No employee record linked to this account" });
+
+      let employee = await prisma.employee.findUnique({ where: { entraObjectId: entraClaims.oid } });
+
+      if (!employee) {
+        // First sign-in for this Entra account: link it to the employee
+        // record with the matching email (already provisioned via the
+        // Organization page or Excel/SharePoint import) instead of
+        // requiring entraObjectId to be pre-populated out of band. The
+        // email in `oid`-bearing Entra tokens is verified by Microsoft, so
+        // this is a safe just-in-time link — but only when the directory
+        // record isn't already linked to a *different* Entra account.
+        const claimEmail = (entraClaims.email ?? entraClaims.preferred_username ?? "").toLowerCase();
+        if (!claimEmail) return res.status(401).json({ error: "No employee record linked to this account" });
+
+        const byEmail = await prisma.employee.findUnique({ where: { email: claimEmail } });
+        if (!byEmail) return res.status(401).json({ error: "No employee record linked to this account" });
+        if (byEmail.entraObjectId && byEmail.entraObjectId !== entraClaims.oid) {
+          return res.status(401).json({ error: "This account is linked to a different employee record" });
+        }
+
+        employee = await prisma.employee.update({ where: { id: byEmail.id }, data: { entraObjectId: entraClaims.oid } });
+      }
+
       employeeId = employee.id;
     }
 

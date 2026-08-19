@@ -1,4 +1,5 @@
 import jwt, { JwtHeader } from "jsonwebtoken";
+import jwkToPem from "jwk-to-pem";
 import { env } from "../config/env";
 
 /**
@@ -45,17 +46,6 @@ async function getSigningKeys(): Promise<JwkKey[]> {
   return body.keys;
 }
 
-function jwkToPem(_key: JwkKey): string {
-  // In production, use a small helper (e.g. `jwk-to-pem`) to convert the
-  // JWKS RSA components to PEM before calling jwt.verify. Omitted here to
-  // avoid an extra runtime dependency in a repo whose default AUTH_MODE is
-  // "dev" — add `jwk-to-pem` when enabling AUTH_MODE=entra.
-  throw new Error(
-    "entraProvider.jwkToPem is a documented stub — install `jwk-to-pem` and implement the JWK->PEM " +
-      "conversion before setting AUTH_MODE=entra in production."
-  );
-}
-
 export interface EntraClaims {
   oid: string;
   preferred_username?: string;
@@ -73,7 +63,7 @@ export async function verifyEntraToken(token: string): Promise<EntraClaims> {
   const key = keys.find((k) => k.kid === decodedHeader.kid);
   if (!key) throw new Error("Invalid token: unknown signing key");
 
-  const pem = jwkToPem(key);
+  const pem = jwkToPem({ kty: "RSA", n: key.n, e: key.e });
   const claims = jwt.verify(token, pem, {
     algorithms: ["RS256"],
     audience: env.entraAudience,
